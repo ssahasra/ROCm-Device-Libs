@@ -303,11 +303,25 @@ extern void __llvm_amdgcn_s_sleep(uint) __asm("llvm.amdgcn.s.sleep");
 extern ulong __llvm_amdgcn_s_memtime(void) __asm("llvm.amdgcn.s.memtime");
 extern ulong __llvm_amdgcn_s_memrealtime(void) __asm("llvm.amdgcn.s.memrealtime");
 
+extern __attribute__((const)) uint __llvm_amdgcn_wavefrontsize(void) __asm("llvm.amdgcn.wavefrontsize");
+
 extern uint __llvm_amdgcn_ds_bpermute(uint, uint) __asm("llvm.amdgcn.ds.bpermute");
 extern uint __llvm_amdgcn_ds_swizzle(uint, uint) __asm("llvm.amdgcn.ds.swizzle");
 
 // llvm.amdgcn.mov.dpp.i32 <src> <dpp_ctrl> <row_mask> <bank_mask> <bound_ctrl>
 extern uint __llvm_amdgcn_mov_dpp_i32(uint, uint, uint, uint, bool) __asm("llvm.amdgcn.mov.dpp.i32");
+
+// llvm.amdgcn.update.dpp.i32 <old> <src> <dpp_ctrl> <row_mask> <bank_mask> <bound_ctrl>
+extern uint __llvm_amdgcn_update_dpp_i32(uint, uint, uint, uint, uint, bool) __asm("llvm.amdgcn.update.dpp.i32");
+
+// llvm.amdgcn.mov.dpp8.i32 <src> <sel>
+extern uint __llvm_amdgcn_dpp8_i32(uint, uint) __asm("llvm.amdgcn.dpp8.i32");
+
+// llvm.amdgcn.permlane16 <old> <src0> <src1> <src2> <fi> <bound_control>
+extern uint __llvm_amdgcn_permlane16(uint, uint, uint, uint, bool, bool) __asm("llvm.amdgcn.permlane16");
+
+// llvm.amdgcn.permlanex16 <old> <src0> <src1> <src2> <fi> <bound_control>
+extern uint __llvm_amdgcn_permlanex16(uint, uint, uint, uint, bool, bool) __asm("llvm.amdgcn.permlanex16");
 
 // Operand bits: [0..3]=VM_CNT, [4..6]=EXP_CNT (Export), [8..11]=LGKM_CNT (LDS, GDS, Konstant, Message)
 extern void __llvm_amdgcn_s_waitcnt(int) __asm("llvm.amdgcn.s.waitcnt");

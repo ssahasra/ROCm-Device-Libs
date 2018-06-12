@@ -60,6 +60,6 @@ get_sub_group_id(void)
 CATTR uint
 get_sub_group_local_id(void)
 {
-    return __ockl_activelane_u32();
+    return __ockl_lane_u32();
 }
 

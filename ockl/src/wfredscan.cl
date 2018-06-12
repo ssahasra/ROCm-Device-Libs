@@ -60,84 +60,19 @@
 #define half_swizzle(X,Y) AS_HALF((ushort)uint_swizzle((uint)AS_USHORT(X),Y))
 
 // DPP16
-#define uint_dpp(ID,X,C) ({ \
-    uint __r; \
-    if (ID == 0u) \
-        __r = __llvm_amdgcn_update_dpp_i32(X,X,C,0xf,0xf,true); \
-    else \
-        __r = __llvm_amdgcn_update_dpp_i32(ID,X,C,0xf,0xf,false); \
-    __r; \
-})
-
-#define ulong_dpp(ID,X,C) ({ \
+#define uint_dpp(ID,X,C,R,B,W) __llvm_amdgcn_update_dpp_i32(ID,X,C,R,B,W)
+#define ulong_dpp(ID,X,C,R,B,W) ({ \
     uint2 __x = AS_UINT2(X); \
     uint2 __r; \
-    if (ID == 0ul) { \
-        __r.lo = __llvm_amdgcn_update_dpp_i32(__x.lo, __x.lo, C, 0xf, 0xf, true); \
-        __r.hi = __llvm_amdgcn_update_dpp_i32(__x.hi, __x.hi, C, 0xf, 0xf, true); \
-    } else { \
-        __r.lo = __llvm_amdgcn_update_dpp_i32((uint)ID, __x.lo, C, 0xf, 0xf, false); \
-        __r.hi = __llvm_amdgcn_update_dpp_i32((uint)(ID >> 32) , __x.hi, C, 0xf, 0xf, false); \
-    } \
+    __r.lo = uint_dpp((uint)ID, __x.lo, C, R, B, W); \
+    __r.hi = uint_dpp((uint)(ID >> 32), __x.hi, C, R, B, W); \
     AS_ULONG(__r); \
 })
-
-#define int_dpp(ID,X,C) ({ \
-    int __r; \
-    if (ID == 0) \
-        __r = (int)__llvm_amdgcn_update_dpp_i32((uint)X,(uint)X,C,0xf,0xf,true); \
-    else \
-        __r = (int)__llvm_amdgcn_update_dpp_i32((uint)ID,(uint)X,C,0xf,0xf,false); \
-    __r; \
-})
-
-#define long_dpp(ID,X,C) ({ \
-    uint2 __x = AS_UINT2(X); \
-    uint2 __r; \
-    if (ID == 0l) { \
-        __r.lo = __llvm_amdgcn_update_dpp_i32(__x.lo, __x.lo, C, 0xf, 0xf, true); \
-        __r.hi = __llvm_amdgcn_update_dpp_i32(__x.hi, __x.hi, C, 0xf, 0xf, true); \
-    } else { \
-        __r.lo = __llvm_amdgcn_update_dpp_i32((uint)ID, __x.lo, C, 0xf, 0xf, false); \
-        __r.hi = __llvm_amdgcn_update_dpp_i32((uint)(ID >> 32) , __x.hi, C, 0xf, 0xf, false); \
-    } \
-    AS_LONG(__r); \
-})
-
-#define float_dpp(ID,X,C) ({ \
-    uint __r; \
-    if (ID == 0.0f) \
-        __r = __llvm_amdgcn_update_dpp_i32(AS_UINT(X),AS_UINT(X),C,0xf,0xf,true); \
-    else \
-        __r = __llvm_amdgcn_update_dpp_i32(AS_UINT(ID),AS_UINT(X),C,0xf,0xf,false); \
-    AS_FLOAT(__r); \
-})
-
-#define double_dpp(ID,X,C) ({ \
-    uint2 __x = AS_UINT2(X); \
-    uint2 __r; \
-    if (ID == 0.0) { \
-        __r.lo = __llvm_amdgcn_update_dpp_i32(__x.lo, __x.lo, C, 0xf, 0xf, true); \
-        __r.hi = __llvm_amdgcn_update_dpp_i32(__x.hi, __x.hi, C, 0xf, 0xf, true); \
-    } else { \
-        uint2 __i = AS_UINT2(ID); \
-        __r.lo = __llvm_amdgcn_update_dpp_i32(__i.lo, __x.lo, C, 0xf, 0xf, false); \
-        __r.hi = __llvm_amdgcn_update_dpp_i32(__i.hi, __x.hi, C, 0xf, 0xf, false); \
-    } \
-    AS_DOUBLE(__r); \
-})
-
-#define half_dpp(ID,X,C) ({ \
-    uint __r; \
-    uint __x = (uint)AS_USHORT(X); \
-    if (ID == 0.0h) { \
-        __r = __llvm_amdgcn_update_dpp_i32(__x,__x,C,0xf,0xf,true); \
-    } else { \
-        uint __i = (uint)AS_USHORT(ID); \
-        __r = __llvm_amdgcn_update_dpp_i32(__i,__x,C,0xf,0xf,false); \
-    } \
-    AS_HALF((ushort)__r); \
-})
+#define int_dpp(ID,X,C,R,B,W) (int)uint_dpp((uint)ID,X,C,R,B,W)
+#define long_dpp(ID,X,C,R,B,W) (long)ulong_dpp((ulong)ID,(ulong)X,C,R,B,W)
+#define float_dpp(ID,X,C,R,B,W) AS_FLOAT(uint_dpp(AS_UINT(ID),AS_UINT(X),C,R,B,W))
+#define double_dpp(ID,X,C,R,B,W) AS_DOUBLE(ulong_dpp(AS_ULONG(ID),AS_ULONG(X),C,R,B,W))
+#define half_dpp(ID,X,C,R,B,W) AS_HALF((ushort)uint_dpp((uint)AS_USHORT(ID),(uint)AS_USHORT(X),C,R,B,W))
 
 // DPP8
 #define uint_dpp8(X,S) __llvm_amdgcn_mov_dpp8_i32(X,S)
@@ -155,166 +90,34 @@
 #define half_dpp8(X,S) AS_HALF((ushort)uint_dpp8((uint)AS_USHORT(X),S))
 
 // permlane16
-#define uint_permlane16(ID, X,S0,S1) ({ \
-    uint __r; \
-    if (ID == 0u) \
-        __r = __llvm_amdgcn_permlane16(X,X,S0,S1,false,true); \
-    else \
-        __r = __llvm_amdgcn_permlane16(ID,X,S0,S1,false,false); \
-    __r; \
-})
-
-#define ulong_permlane16(ID,X,S0,S1) ({ \
+#define uint_permlane16(ID,X,S0,S1,W) __llvm_amdgcn_permlane16(ID,X,S0,S1,false,W)
+#define ulong_permlane16(ID,X,S0,S1,W) ({ \
     uint2 __x = AS_UINT2(X); \
     uint2 __r; \
-    if (ID == 0ul) { \
-        __r.lo = __llvm_amdgcn_permlane16(__x.lo,__x.lo,S0,S1,false,true); \
-        __r.hi = __llvm_amdgcn_permlane16(__x.hi,__x.hi,S0,S1,false,true); \
-    } else { \
-        __r.lo = __llvm_amdgcn_permlane16((uint)ID,__x.lo,S0,S1,false,false); \
-        __r.hi = __llvm_amdgcn_permlane16((uint)(ID >> 32),__x.hi,S0,S1,false,false); \
-    } \
+    __r.lo = uint_permlane16((uint)ID,__x.lo,S0,S1,W); \
+    __r.hi = uint_permlane16((uint)(ID>>32),__x.hi,S0,S1,W); \
     AS_ULONG(__r); \
 })
-
-#define int_permlane16(ID, X,S0,S1) ({ \
-    int __r; \
-    if (ID == 0) \
-        __r = (int)__llvm_amdgcn_permlane16((uint)X,(uint)X,S0,S1,false,true); \
-    else \
-        __r = (int)__llvm_amdgcn_permlane16((uint)ID,(uint)X,S0,S1,false,false); \
-    __r; \
-})
-
-#define long_permlane16(ID,X,S0,S1) ({ \
-    uint2 __x = AS_UINT2(X); \
-    uint2 __r; \
-    if (ID == 0l) { \
-        __r.lo = __llvm_amdgcn_permlane16(__x.lo,__x.lo,S0,S1,false,true); \
-        __r.hi = __llvm_amdgcn_permlane16(__x.hi,__x.hi,S0,S1,false,true); \
-    } else { \
-        __r.lo = __llvm_amdgcn_permlane16((uint)ID,__x.lo,S0,S1,false,false); \
-        __r.hi = __llvm_amdgcn_permlane16((uint)(ID >> 32),__x.hi,S0,S1,false,false); \
-    } \
-    AS_LONG(__r); \
-})
-
-#define float_permlane16(ID, X,S0,S1) ({ \
-    uint __r; \
-    if (ID == 0.0f) \
-        __r = __llvm_amdgcn_permlane16(AS_UINT(X),AS_UINT(X),S0,S1,false,true); \
-    else \
-        __r = __llvm_amdgcn_permlane16(AS_UINT(ID),AS_UINT(X),S0,S1,false,false); \
-    AS_FLOAT(__r); \
-})
-
-#define double_permlane16(ID,X,S0,S1) ({ \
-    uint2 __x = AS_UINT2(X); \
-    uint2 __r; \
-    if (ID == 0.0) { \
-        __r.lo = __llvm_amdgcn_permlane16(__x.lo,__x.lo,S0,S1,false,true); \
-        __r.hi = __llvm_amdgcn_permlane16(__x.hi,__x.hi,S0,S1,false,true); \
-    } else { \
-        uint2 __i = AS_UINT2(ID); \
-        __r.lo = __llvm_amdgcn_permlane16(__i.lo,__x.lo,S0,S1,false,false); \
-        __r.hi = __llvm_amdgcn_permlane16(__i.hi,__x.hi,S0,S1,false,false); \
-    } \
-    AS_DOUBLE(__r); \
-})
-
-#define half_permlane16(ID,X,S0,S1) ({ \
-    uint __r; \
-    uint __x = (uint)AS_USHORT(X); \
-    if (ID == 0.0h) { \
-        __r = __llvm_amdgcn_permlane16(__x,__x,S0,S1,false,true); \
-    } else { \
-        uint __i = (uint)AS_USHORT(ID); \
-        __r = __llvm_amdgcn_permlane16(__i,__x,S0,S1,false,false); \
-    } \
-    AS_HALF((ushort)__r); \
-})
-
+#define int_permlane16(ID,X,S0,S1,W) (int)uint_permlane16((uint)ID,(uint)X,S0,S1,W)
+#define long_permlane16(ID,X,S0,S1,W) (long)ulong_permlane16((ulong)ID,(ulong)X,S0,S1,W)
+#define float_permlane16(ID, X,S0,S1,W) AS_FLOAT(uint_permlane16(AS_UINT(ID),AS_UINT(X),S0,S1,W))
+#define double_permlane16(ID, X,S0,S1,W) AS_DOUBLE(ulong_permlane16(AS_ULONG(ID),AS_ULONG(X),S0,S1,W))
+#define half_permlane16(ID,X,S0,S1,W) AS_HALF((ushort)uint_permlane16((uint)AS_USHORT(ID),(uint)AS_USHORT(X),S0,S1,W))
 
 // permlanex16
-#define uint_permlanex16(ID, X,S0,S1) ({ \
-    uint __r; \
-    if (ID == 0u) \
-        __r = __llvm_amdgcn_permlanex16(X,X,S0,S1,false,true); \
-    else \
-        __r = __llvm_amdgcn_permlanex16(ID,X,S0,S1,false,false); \
-    __r; \
-})
-
-#define ulong_permlanex16(ID,X,S0,S1) ({ \
+#define uint_permlanex16(ID,X,S0,S1,W) __llvm_amdgcn_permlanex16(ID,X,S0,S1,false,W)
+#define ulong_permlanex16(ID,X,S0,S1,W) ({ \
     uint2 __x = AS_UINT2(X); \
     uint2 __r; \
-    if (ID == 0ul) { \
-        __r.lo = __llvm_amdgcn_permlanex16(__x.lo,__x.lo,S0,S1,false,true); \
-        __r.hi = __llvm_amdgcn_permlanex16(__x.hi,__x.hi,S0,S1,false,true); \
-    } else { \
-        __r.lo = __llvm_amdgcn_permlanex16((uint)ID,__x.lo,S0,S1,false,false); \
-        __r.hi = __llvm_amdgcn_permlanex16((uint)(ID >> 32),__x.hi,S0,S1,false,false); \
-    } \
+    __r.lo = uint_permlanex16((uint)ID,__x.lo,S0,S1,W); \
+    __r.hi = uint_permlanex16((uint)(ID>>32),__x.hi,S0,S1,W); \
     AS_ULONG(__r); \
 })
-
-#define int_permlanex16(ID, X,S0,S1) ({ \
-    int __r; \
-    if (ID == 0) \
-        __r = (int)__llvm_amdgcn_permlanex16((uint)X,(uint)X,S0,S1,false,true); \
-    else \
-        __r = (int)__llvm_amdgcn_permlanex16((uint)ID,(uint)X,S0,S1,false,false); \
-    __r; \
-})
-
-#define long_permlanex16(ID,X,S0,S1) ({ \
-    uint2 __x = AS_UINT2(X); \
-    uint2 __r; \
-    if (ID == 0l) { \
-        __r.lo = __llvm_amdgcn_permlanex16(__x.lo,__x.lo,S0,S1,false,true); \
-        __r.hi = __llvm_amdgcn_permlanex16(__x.hi,__x.hi,S0,S1,false,true); \
-    } else { \
-        __r.lo = __llvm_amdgcn_permlanex16((uint)ID,__x.lo,S0,S1,false,false); \
-        __r.hi = __llvm_amdgcn_permlanex16((uint)(ID >> 32),__x.hi,S0,S1,false,false); \
-    } \
-    AS_LONG(__r); \
-})
-
-#define float_permlanex16(ID, X,S0,S1) ({ \
-    uint __r; \
-    if (ID == 0.0f) \
-        __r = __llvm_amdgcn_permlanex16(AS_UINT(X),AS_UINT(X),S0,S1,false,true); \
-    else \
-        __r = __llvm_amdgcn_permlanex16(AS_UINT(ID),AS_UINT(X),S0,S1,false,false); \
-    AS_FLOAT(__r); \
-})
-
-#define double_permlanex16(ID,X,S0,S1) ({ \
-    uint2 __x = AS_UINT2(X); \
-    uint2 __r; \
-    if (ID == 0.0) { \
-        __r.lo = __llvm_amdgcn_permlanex16(__x.lo,__x.lo,S0,S1,false,true); \
-        __r.hi = __llvm_amdgcn_permlanex16(__x.hi,__x.hi,S0,S1,false,true); \
-    } else { \
-        uint2 __i = AS_UINT2(ID); \
-        __r.lo = __llvm_amdgcn_permlanex16(__i.lo,__x.lo,S0,S1,false,false); \
-        __r.hi = __llvm_amdgcn_permlanex16(__i.hi,__x.hi,S0,S1,false,false); \
-    } \
-    AS_DOUBLE(__r); \
-})
-
-#define half_permlanex16(ID, X,S0,S1) ({ \
-    uint __r; \
-    uint __x = (uint)AS_USHORT(X); \
-    if (ID == 0.0h) { \
-        __r = __llvm_amdgcn_permlanex16(__x,__x,S0,S1,false,true); \
-    } else { \
-        uint __i = (uint)AS_USHORT(ID); \
-        __r = __llvm_amdgcn_permlanex16(__i,__x,S0,S1,false,false); \
-    } \
-    AS_HALF((ushort)__r); \
-})
-
+#define int_permlanex16(ID,X,S0,S1,W) (int)uint_permlanex16((uint)ID,(uint)X,S0,S1,W)
+#define long_permlanex16(ID,X,S0,S1,W) (long)ulong_permlanex16((ulong)ID,(ulong)X,S0,S1,W)
+#define float_permlanex16(ID, X,S0,S1,W) AS_FLOAT(uint_permlanex16(AS_UINT(ID),AS_UINT(X),S0,S1,W))
+#define double_permlanex16(ID, X,S0,S1,W) AS_DOUBLE(ulong_permlanex16(AS_ULONG(ID),AS_ULONG(X),S0,S1,W))
+#define half_permlanex16(ID,X,S0,S1,W) AS_HALF((ushort)uint_permlanex16((uint)AS_USHORT(ID),(uint)AS_USHORT(X),S0,S1,W))
 
 // readlane
 #define uint_readlane(X,L) __llvm_amdgcn_readlane(X,L)
@@ -395,7 +198,7 @@ GENMAX(ulong)
 #define ulong_or(X,Y) OR(X,Y)
 #define long_or(X,Y) OR(X,Y)
 
-#define AND(X,Y) (X | Y)
+#define AND(X,Y) (X & Y)
 #define uint_and(X,Y) AND(X,Y)
 #define int_and(X,Y) AND(X,Y)
 #define ulong_and(X,Y) AND(X,Y)
@@ -494,20 +297,20 @@ GENMAX(ulong)
 #define RED_GFX89(T,OP,ID) \
     T v; \
  \
-    v = T##_dpp(ID, x, DPP_QUAD_PERM(0x1,0x0,0x3,0x2)); \
+    v = T##_dpp(ID, x, DPP_ROW_SL(1), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(x, v); \
  \
-    v = T##_dpp(ID, r, DPP_QUAD_PERM(0x2,0x3,0x0,0x1)); \
+    v = T##_dpp(ID, r, DPP_ROW_SL(2), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
-    v = T##_dpp(ID, r, DPP_ROW_SL(4)); \
+    v = T##_dpp(ID, r, DPP_ROW_SL(4), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
-    v = T##_dpp(ID, r, DPP_ROW_SL(8)); \
+    v = T##_dpp(ID, r, DPP_ROW_SL(8), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
-    v = T##_dpp(ID, r, DPP_WF_SL1); \
-    v = T##_dpp(ID, v, DPP_ROW_MIRROR); \
+    v = T##_dpp(ID, r, DPP_WF_SL1, 0xf, 0xf, ID == (T)0); \
+    v = T##_dpp(ID, v, DPP_ROW_MIRROR, 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
     v = T##_readlane(r, 32); \
@@ -519,19 +322,19 @@ GENMAX(ulong)
 #define RED_GFX10(T,OP,ID) \
     T v; \
  \
-    v = T##_dpp(ID, x, DPP_ROW_XMASK(0x1)); \
+    v = T##_dpp(ID, x, DPP_ROW_XMASK(0x1), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(x, v); \
  \
-    v = T##_dpp(ID, r, DPP_ROW_XMASK(0x2)); \
+    v = T##_dpp(ID, r, DPP_ROW_XMASK(0x2), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
-    v = T##_dpp(ID, r, DPP_ROW_XMASK(0x4)); \
+    v = T##_dpp(ID, r, DPP_ROW_XMASK(0x4), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
-    v = T##_dpp(ID, r, DPP_ROW_XMASK(0x8)); \
+    v = T##_dpp(ID, r, DPP_ROW_XMASK(0x8), 0xf, 0xf, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
-    v = T##_permlanex16(ID, r, 0, 0); \
+    v = T##_permlanex16(ID, r, 0, 0, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
     if (__llvm_amdgcn_wavefrontsize() == 64) { \
@@ -575,24 +378,22 @@ GENMAX(ulong)
 #define ISCAN_GFX89(T,OP,ID) \
     T v; \
  \
-    v = T##_dpp(ID, x, DPP_ROW_SR(1)); \
+    v = T##_dpp(ID, x, DPP_ROW_SR(1), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(x, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_SR(2)); \
+    v = T##_dpp(ID, s, DPP_ROW_SR(2), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(s, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_SR(4)); \
+    v = T##_dpp(ID, s, DPP_ROW_SR(4), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(s, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_SR(8)); \
+    v = T##_dpp(ID, s, DPP_ROW_SR(8), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(s, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_BCAST15); \
-    v = (l & 0x10) ? v : ID; \
+    v = T##_dpp(ID, s, DPP_ROW_BCAST15, 0xa, 0xf, false); \
     s = T##_##OP(s, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_BCAST31); \
-    v = (l & 0x20) ? v : ID; \
+    v = T##_dpp(ID, s, DPP_ROW_BCAST31, 0xc, 0xf, false); \
     s = T##_##OP(s, v); \
 
 // Inclusive scan with operation OP using DPP
@@ -600,19 +401,19 @@ GENMAX(ulong)
 #define ISCAN_GFX10(T,OP,ID) \
     T v; \
  \
-    v = T##_dpp(ID, x, DPP_ROW_SR(1)); \
+    v = T##_dpp(ID, x, DPP_ROW_SR(1), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(x, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_SR(2)); \
+    v = T##_dpp(ID, s, DPP_ROW_SR(2), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(s, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_SR(4)); \
+    v = T##_dpp(ID, s, DPP_ROW_SR(4), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(s, v); \
  \
-    v = T##_dpp(ID, s, DPP_ROW_SR(8)); \
+    v = T##_dpp(ID, s, DPP_ROW_SR(8), 0xf, 0xf, ID == (T)0); \
     s = T##_##OP(s, v); \
  \
-    v = T##_permlanex16(ID, s, 0xffffffff, 0xffffffff); \
+    v = T##_permlanex16(ID, s, 0xffffffff, 0xffffffff, ID == (T)0); \
     v = (l & 0x10) ? v : ID; \
     s = T##_##OP(s, v); \
  \
@@ -647,13 +448,13 @@ GENMAX(ulong)
 // Shift right 1 on entire wavefront using DPP
 // input is s, l is lane, output is s
 #define SR1_GFX89(T,ID) \
-    s = T##_dpp(ID, s, DPP_WF_SR1); \
+    s = T##_dpp(ID, s, DPP_WF_SR1, 0xf, 0xf, ID == (T)0); \
 
 // Shift right 1 on entire wavefront using DPP
 // input is s, l is lane, output is s
 #define SR1_GFX10(T,ID) \
-    T t = T##_dpp(ID, s, DPP_ROW_SR(1)); \
-    T v = T##_permlanex16(ID, s, 0xffffffff, 0xffffffff); \
+    T t = T##_dpp(ID, s, DPP_ROW_SR(1), 0xf, 0xf, ID == (T)0); \
+    T v = T##_permlanex16(ID, s, 0xffffffff, 0xffffffff, ID == (T)0); \
     if (__llvm_amdgcn_wavefrontsize() == 64) { \
         T w = T##_readlane(s, 31); \
         v = l == 32 ? w : v; \
@@ -697,7 +498,7 @@ IATTR T \
 C(__ockl_wfscan_,C(OP,T##_suf))(T x, bool inclusive) \
 { \
     T s; \
-    uint l = __ockl_activelane_u32(); \
+    uint l = __ockl_lane_u32(); \
  \
     if (__oclc_ISA_version() < 800) { \
         ISCAN_GFX7(T,OP,ID); \

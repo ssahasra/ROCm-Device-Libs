@@ -467,10 +467,9 @@ IATTR static bool
 fullwave(void)
 {
     if (__llvm_amdgcn_wavefrontsize() == 32) {
-        return __llvm_ctpop_i32(__builtin_amdgcn_read_exec_lo()) == 32;
+        return __builtin_popcount(__builtin_amdgcn_read_exec()) == 32;
     } else {
-        return __llvm_ctpop_i32(__builtin_amdgcn_read_exec_lo()) +
-               __llvm_ctpop_i32(__builtin_amdgcn_read_exec_hi()) == 64;
+        return __builtin_popcountl(__builtin_amdgcn_read_exec()) == 64;
     }
 }
 

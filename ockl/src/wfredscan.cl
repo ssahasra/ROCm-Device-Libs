@@ -45,7 +45,7 @@
 #define DPP_ROW_XMASK(N) (uint)(0x160 | N)
 
 // Swizzle
-#define uint_swizzle(X,Y) __llvm_amdgcn_ds_swizzle(X, Y)
+#define uint_swizzle(X,Y) __builtin_amdgcn_ds_swizzle(X, Y)
 #define ulong_swizzle(X,Y) ({ \
     uint2 __x = AS_UINT2(X); \
     uint2 __r; \
@@ -120,7 +120,7 @@
 #define half_permlanex16(ID,X,S0,S1,W) AS_HALF((ushort)uint_permlanex16((uint)AS_USHORT(ID),(uint)AS_USHORT(X),S0,S1,W))
 
 // readlane
-#define uint_readlane(X,L) __llvm_amdgcn_readlane(X,L)
+#define uint_readlane(X,L) __builtin_amdgcn_readlane(X,L)
 #define ulong_readlane(X,L) ({ \
     uint2 __x = AS_UINT2(X); \
     uint2 __r; \
@@ -170,8 +170,8 @@ GENMIN(int)
 GENMIN(uint)
 GENMIN(long)
 GENMIN(ulong)
-#define float_min(A,B) __llvm_minnum_f32(A,B)
-#define double_min(A,B) __llvm_minnum_f64(A,B)
+#define float_min(A,B) __builtin_fminf(A,B)
+#define double_min(A,B) __builtin_fmin(A,B)
 #define half_min(A,B) __llvm_minnum_f16(A,B)
 
 #define GENMAX(T) CATTR static T T##_max(T a, T b) { return a < b ? b : a; }
@@ -179,8 +179,8 @@ GENMAX(int)
 GENMAX(uint)
 GENMAX(long)
 GENMAX(ulong)
-#define float_max(A,B) __llvm_maxnum_f32(A,B)
-#define double_max(A,B) __llvm_maxnum_f64(A,B)
+#define float_max(A,B) __builtin_fmaxf(A,B)
+#define double_max(A,B) __builtin_fmax(A,B)
 #define half_max(A,B) __llvm_maxnum_f16(A,B)
 
 #define ADD(X,Y) (X + Y)

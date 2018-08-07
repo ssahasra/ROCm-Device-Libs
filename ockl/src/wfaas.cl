@@ -33,7 +33,7 @@ OCKL_MANGLE_I32(wfall)(int e)
     }
 }
 
- 
+
 ATTR bool
 OCKL_MANGLE_I32(wfsame)(int e)
 {

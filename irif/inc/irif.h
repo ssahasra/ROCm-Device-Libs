@@ -10,6 +10,9 @@
 
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
+#define REQUIRES_16BIT_INSTS __attribute__((target("16-bit-insts")))
+#define REQUIRES_GFX9_INSTS __attribute__((target("gfx9-insts")))
+
 // Generic intrinsics
 extern __attribute__((const)) half __llvm_sqrt_f16(half) __asm("llvm.sqrt.f16");
 extern __attribute__((const)) half __llvm_exp2_f16(half) __asm("llvm.exp2.f16");

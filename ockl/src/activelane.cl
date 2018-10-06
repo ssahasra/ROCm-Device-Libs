@@ -8,7 +8,7 @@
 #include "irif.h"
 #include "ockl.h"
 
-__attribute__((always_inline)) uint
+uint
 OCKL_MANGLE_U32(activelane)(void)
 {
     if (__llvm_amdgcn_wavefrontsize() == 32) {

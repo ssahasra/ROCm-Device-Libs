@@ -96,7 +96,7 @@ static __constant uint GFX10_samplers[] = {
 
 typedef struct { int x, y, z, w; } __sampler_t;
 
-__attribute__((always_inline, const)) __constant __sampler_t *
+__attribute__((const)) __constant __sampler_t *
 __translate_sampler_initializer(int i)
 {
     if (__oclc_ISA_version < 900) {

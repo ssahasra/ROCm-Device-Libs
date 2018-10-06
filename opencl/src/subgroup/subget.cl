@@ -8,7 +8,7 @@
 #include "irif.h"
 #include "ockl.h"
 
-#define CATTR __attribute__((overloadable, always_inline, const))
+#define CATTR __attribute__((overloadable, const))
 
 CATTR uint
 get_sub_group_size(void)

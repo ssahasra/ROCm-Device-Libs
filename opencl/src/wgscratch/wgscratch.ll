@@ -8,4 +8,4 @@ define protected i64 addrspace(3)* @__get_scratch_lds() #0 {
   ret i64 addrspace(3)* getelementptr inbounds ([32 x i64], [32 x i64] addrspace(3)* @__scratch_lds, i64 0, i64 0)
 }
 
-attributes #0 = { alwaysinline norecurse nounwind readnone }
+attributes #0 = { alwaysinline norecurse nounwind readnone speculatable }

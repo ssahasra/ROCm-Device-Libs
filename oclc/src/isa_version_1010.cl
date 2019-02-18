@@ -5,16 +5,7 @@
  * License. See LICENSE.TXT for details.
  *===------------------------------------------------------------------------*/
 
-#include "irif.h"
-#include "ockl.h"
+#include "oclc.h"
 
-__attribute__((always_inline)) uint
-OCKL_MANGLE_U32(lane)(void)
-{
-    if (__llvm_amdgcn_wavefrontsize() == 32) {
-        return __llvm_amdgcn_mbcnt_lo(~0u, 0u);
-    } else {
-        return __llvm_amdgcn_mbcnt_hi(~0u, __llvm_amdgcn_mbcnt_lo(~0u, 0u));
-    }
-}
+const __constant int __oclc_ISA_version = 1010;
 

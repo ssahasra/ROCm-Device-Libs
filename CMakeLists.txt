@@ -5,9 +5,20 @@
 ## License. See LICENSE.TXT for details.
 ##===--------------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 cmake_policy(SET CMP0011 NEW)
+
+# Build ROCM-Device-Libs with ccache if the package is present.
+set(ROCM_DEVICE_LIBS_CCACHE_BUILD OFF CACHE BOOL "Set to ON for a ccache enabled build")
+if(ROCM_DEVICE_LIBS_CCACHE_BUILD)
+  find_program(CCACHE_PROGRAM ccache)
+  if(CCACHE_PROGRAM)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_PROGRAM})
+  else()
+    message(FATAL_ERROR "Unable to find the program ccache. Set ROCM_DEVICE_LIBS_CCACHE_BUILD to OFF")
+  endif()
+endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 project(ROCm-Device-Libs)
@@ -76,7 +87,7 @@ set ( CPACK_PACKAGE_DESCRIPTION_SUMMARY "Radeon Open Compute - device libraries"
 set ( CPACK_PACKAGE_DESCRIPTION "This package includes LLVM bitcode libraries." )
 set ( CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/RadeonOpenCompute/ROCm-Device-Libs" )
 
-set ( CPACK_GENERATOR DEB RPM )
+set ( CPACK_GENERATOR "DEB;RPM" CACHE STRING "Default packaging generators." )
 
 ## Debian package values
 set ( CPACK_DEBIAN_PACKAGE_MAINTAINER "AMD" )

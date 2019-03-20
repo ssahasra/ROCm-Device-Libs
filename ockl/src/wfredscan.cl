@@ -337,7 +337,7 @@ GENMAX(ulong)
     v = T##_permlanex16(ID, r, 0, 0, ID == (T)0); \
     r = T##_##OP(r, v); \
  \
-    if (__llvm_amdgcn_wavefrontsize() == 64) { \
+    if (__oclc_wavefrontsize64) { \
         T v = T##_readlane(r, 32); \
         v = (__builtin_amdgcn_read_exec_hi() & 1) ? v : ID; \
         r =  T##_##OP(T##_readlane(r, 0), v); \
@@ -417,7 +417,7 @@ GENMAX(ulong)
     v = (l & 0x10) ? v : ID; \
     s = T##_##OP(s, v); \
  \
-    if (__llvm_amdgcn_wavefrontsize() == 64) { \
+    if (__oclc_wavefrontsize64) { \
         v = T##_readlane(s, 31); \
         v = l > 31 ? v : ID; \
         s = T##_##OP(s, v); \
@@ -455,7 +455,7 @@ GENMAX(ulong)
 #define SR1_GFX10(T,ID) \
     T t = T##_dpp(ID, s, DPP_ROW_SR(1), 0xf, 0xf, ID == (T)0); \
     T v = T##_permlanex16(ID, s, 0xffffffff, 0xffffffff, ID == (T)0); \
-    if (__llvm_amdgcn_wavefrontsize() == 64) { \
+    if (__oclc_wavefrontsize64) { \
         T w = T##_readlane(s, 31); \
         v = l == 32 ? w : v; \
         s = ((l == 32) | ((l & 0x1f) == 0x10)) ? v : t; \
@@ -466,10 +466,10 @@ GENMAX(ulong)
 IATTR static bool
 fullwave(void)
 {
-    if (__llvm_amdgcn_wavefrontsize() == 32) {
-        return __builtin_popcount(__builtin_amdgcn_read_exec_lo()) == 32;
-    } else {
+    if (__oclc_wavefrontsize64) {
         return __builtin_popcountl(__builtin_amdgcn_read_exec()) == 64;
+    } else {
+        return __builtin_popcount(__builtin_amdgcn_read_exec_lo()) == 32;
     }
 }
 

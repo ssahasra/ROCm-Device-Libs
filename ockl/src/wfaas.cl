@@ -5,6 +5,7 @@
  * License. See LICENSE.TXT for details.
  *===------------------------------------------------------------------------*/
 
+#include "oclc.h"
 #include "irif.h"
 #include "ockl.h"
 
@@ -16,7 +17,7 @@
 ATTR bool
 OCKL_MANGLE_I32(wfany)(int e)
 {
-    if (__llvm_amdgcn_wavefrontsize() == 64) {
+    if (__oclc_wavefrontsize64) {
         return __llvm_amdgcn_icmp_i64_i32(e, 0, ICMP_NE) != 0UL;
     } else {
         return __llvm_amdgcn_icmp_i32_i32(e, 0, ICMP_NE) != 0U;
@@ -26,7 +27,7 @@ OCKL_MANGLE_I32(wfany)(int e)
 ATTR bool
 OCKL_MANGLE_I32(wfall)(int e)
 {
-    if (__llvm_amdgcn_wavefrontsize() == 64) {
+    if (__oclc_wavefrontsize64) {
         return __llvm_amdgcn_icmp_i64_i32(e, 0, ICMP_NE) == __builtin_amdgcn_read_exec();
     } else {
         return __llvm_amdgcn_icmp_i32_i32(e, 0, ICMP_NE) == __builtin_amdgcn_read_exec_lo();
@@ -37,7 +38,7 @@ OCKL_MANGLE_I32(wfall)(int e)
 ATTR bool
 OCKL_MANGLE_I32(wfsame)(int e)
 {
-    if (__llvm_amdgcn_wavefrontsize() == 64) {
+    if (__oclc_wavefrontsize64) {
         ulong u = __llvm_amdgcn_icmp_i64_i32(e, 0, ICMP_NE) != 0UL;
         return (u == 0UL) | (u == __builtin_amdgcn_read_exec());
     } else {

@@ -88,6 +88,12 @@ msg_set_begin_flag(ulong pd)
 }
 
 static ulong
+msg_set_end_flag(ulong pd)
+{
+    return pd | ((ulong)DESCRIPTOR_FLAG_END << DESCRIPTOR_OFFSET_FLAGS);
+}
+
+static ulong
 msg_reset_begin_flag(ulong pd)
 {
     ulong reset_mask = ~((ulong)DESCRIPTOR_FLAG_BEGIN << DESCRIPTOR_OFFSET_FLAGS);
@@ -113,13 +119,16 @@ msg_set_end_flag(ulong pd)
     return pd | ((ulong)DESCRIPTOR_FLAG_END << DESCRIPTOR_OFFSET_FLAGS);
 }
 
-static long2
-message_uchar(uint service_id,
-              ulong msg_desc, const uchar *data, uint len)
-{
-    msg_desc = msg_set_bytes(msg_desc, len);
+#define PACK_UINT(xxx, data, len)                       \
+    uint xxx = 0;                                       \
+    uint plen = (len > 4) ? 4 : len;                    \
+    for (uint ii = 0; ii != plen; ++ii) {               \
+        xxx |= (uint)data[ii] << (ii * 8);              \
+    }                                                   \
+    len -= plen;                                        \
+    data += plen;
 
-#define PACK_ULONG(xxx)                                 \
+#define PACK_ULONG(xxx, data, len)                      \
     ulong xxx = 0;                                      \
     if (len > 0) {                                      \
         uint plen = (len > 8) ? 8 : len;                \
@@ -130,13 +139,47 @@ message_uchar(uint service_id,
         data += plen;                                   \
     }
 
-    PACK_ULONG(arg1);
-    PACK_ULONG(arg2);
-    PACK_ULONG(arg3);
-    PACK_ULONG(arg4);
-    PACK_ULONG(arg5);
-    PACK_ULONG(arg6);
-    PACK_ULONG(arg7);
+static long2
+begin_string(uint service_id,
+             ulong msg_desc, const uchar *data, uint len)
+{
+    msg_desc = msg_set_bytes(msg_desc, len);
+    if (len > 52)
+        msg_desc = msg_reset_end_flag(msg_desc);
+    uint rounded = (len + 3) & ~(uint)3;
+
+    uint arg1_lo = rounded;
+    PACK_UINT(arg1_hi, data, len);
+    ulong arg1 = ((ulong)arg1_hi << 32) | arg1_lo;
+
+    PACK_ULONG(arg2, data, len);
+    PACK_ULONG(arg3, data, len);
+    PACK_ULONG(arg4, data, len);
+    PACK_ULONG(arg5, data, len);
+    PACK_ULONG(arg6, data, len);
+    PACK_ULONG(arg7, data, len);
+
+    long2 result
+        = __ockl_hostcall_preview(service_id,
+                                msg_desc, arg1, arg2, arg3,
+                                arg4, arg5, arg6, arg7);
+
+    return result.x;
+}
+
+static long2
+continue_string(uint service_id,
+              ulong msg_desc, const uchar *data, uint len)
+{
+    msg_desc = msg_set_bytes(msg_desc, len);
+
+    PACK_ULONG(arg1, data, len);
+    PACK_ULONG(arg2, data, len);
+    PACK_ULONG(arg3, data, len);
+    PACK_ULONG(arg4, data, len);
+    PACK_ULONG(arg5, data, len);
+    PACK_ULONG(arg6, data, len);
+    PACK_ULONG(arg7, data, len);
 
     long2 result
         = __ockl_hostcall_preview(service_id,
@@ -147,40 +190,55 @@ message_uchar(uint service_id,
 }
 
 long2
-__ockl_hostcall_message_uchar(uint service_id,
-                           ulong msg_desc, const uchar *data, uint len)
+__ockl_hostcall_message_string(uint service_id,
+                               ulong msg_desc, const uchar *data, uint len)
 {
     ulong end_flag = msg_get_end_flag(msg_desc);
-    ulong desc = msg_reset_end_flag(msg_desc);
     long2 retval = {0, 0};
+
+    int thread_done = 0;
+    int string_begun = 0;
 
     // Use a waterfall loop until the compiler's handling of
     // convergent operations in divergent loops is improved. The
     // presence of __ockl_wfall_i32(), prevents the compiler from
     // hoisting calls to convergent functions like __ockl_lane_u32().
-    int thread_done = 0;
     do {
-        if (thread_done == 0) {
-            uint plen = len;
-            if (len > 56) {
-                plen = 56;
-            } else {
-                desc |= end_flag;
-            }
-            retval = message_uchar(service_id, desc, data, plen);
-            desc = (ulong)retval.x;
-            len -= plen;
-            data += plen;
-
-            if (len == 0) thread_done = 1;
+        if (thread_done != 0) {
+            continue;
         }
+
+        if (string_begun == 0) {
+            retval = begin_string(service_id, msg_desc, data, len);
+            if (len <= 56) {
+                thread_done = 1;
+                continue;
+            }
+            len -= 56;
+            msg_desc = retval.x;
+            string_begun = 1;
+        }
+
+        uint plen = len;
+        if (len > 56) {
+            msg_desc = msg_reset_end_flag(msg_desc);
+            plen = 56;
+        } else {
+            msg_desc |= end_flag;
+        }
+        retval = continue_string(service_id, msg_desc, data, plen);
+        msg_desc = (ulong)retval.x;
+        len -= plen;
+        data += plen;
+
+        if (len == 0) thread_done = 1;
     } while (__ockl_wfall_i32(thread_done) == 0);
 
     return retval;
 }
 
 long2
-__ockl_hostcall_message_uint(uint service_id, ulong msg_desc,
+__ockl_hostcall_message_dwords(uint service_id, ulong msg_desc,
                              uint num_args,
                              uint arg0, uint arg1, uint arg2, uint arg3,
                              uint arg4, uint arg5, uint arg6, uint arg7,

@@ -114,10 +114,11 @@ msg_set_end_flag(ulong pd)
 }
 
 static long2
-message_uchar(uint service_id,
+message_string(uint service_id,
               ulong msg_desc, const uchar *data, uint len)
 {
-    msg_desc = msg_set_bytes(msg_desc, len);
+    uint rounded = (len + 3) & ~(uint)3;
+    msg_desc = msg_set_bytes(msg_desc, rounded);
 
 #define PACK_ULONG(xxx)                                 \
     ulong xxx = 0;                                      \
@@ -147,7 +148,7 @@ message_uchar(uint service_id,
 }
 
 long2
-__ockl_hostcall_message_uchar(uint service_id,
+__ockl_hostcall_message_string(uint service_id,
                            ulong msg_desc, const uchar *data, uint len)
 {
     ulong end_flag = msg_get_end_flag(msg_desc);
@@ -167,7 +168,7 @@ __ockl_hostcall_message_uchar(uint service_id,
             } else {
                 desc |= end_flag;
             }
-            retval = message_uchar(service_id, desc, data, plen);
+            retval = message_string(service_id, desc, data, plen);
             desc = (ulong)retval.x;
             len -= plen;
             data += plen;
@@ -180,7 +181,7 @@ __ockl_hostcall_message_uchar(uint service_id,
 }
 
 long2
-__ockl_hostcall_message_uint(uint service_id, ulong msg_desc,
+__ockl_hostcall_message_dwords(uint service_id, ulong msg_desc,
                              uint num_args,
                              uint arg0, uint arg1, uint arg2, uint arg3,
                              uint arg4, uint arg5, uint arg6, uint arg7,

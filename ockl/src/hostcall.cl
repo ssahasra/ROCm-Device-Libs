@@ -58,65 +58,58 @@ __ockl_hostcall_preview(uint service_id,
 /** Enums that describe the message descriptor fields.
  */
 typedef enum {
-    DESCRIPTOR_OFFSET_FLAGS = 0,
-    DESCRIPTOR_OFFSET_BYTES = 8,
-    DESCRIPTOR_OFFSET_MSG_ID = 16
+    DESCRIPTOR_OFFSET_FLAG_BEGIN = 0,
+    DESCRIPTOR_OFFSET_FLAG_END = 1,
+    DESCRIPTOR_OFFSET_RESERVED0 = 2,
+    DESCRIPTOR_OFFSET_LEN = 5,
+    DESCRIPTOR_OFFSET_ID = 8
 } descriptor_offset_t;
 
 typedef enum {
-    DESCRIPTOR_WIDTH_FLAGS = 8,
-    DESCRIPTOR_WIDTH_BYTES = 8,
-    DESCRIPTOR_WIDTH_MSG_ID = 48
+    DESCRIPTOR_WIDTH_FLAG_BEGIN = 1,
+    DESCRIPTOR_WIDTH_FLAG_END = 1,
+    DESCRIPTOR_WIDTH_RESERVED0 = 3,
+    DESCRIPTOR_WIDTH_LEN = 3,
+    DESCRIPTOR_WIDTH_ID = 56
 } descriptor_width_t;
 
-typedef enum {
-    DESCRIPTOR_FLAG_BEGIN = 1,
-    DESCRIPTOR_FLAG_END = 2
-} descriptor_flag_t;
-
 static ulong
-msg_set_bytes(ulong pd, uchar len)
+msg_set_len(ulong pd, uchar len)
 {
-    ulong reset_mask = ~(((1UL << DESCRIPTOR_WIDTH_BYTES) - 1) << DESCRIPTOR_OFFSET_BYTES);
-    return (pd & reset_mask) | ((ulong)len << DESCRIPTOR_OFFSET_BYTES);
+    ulong reset_mask = ~(((1UL << DESCRIPTOR_WIDTH_LEN) - 1) << DESCRIPTOR_OFFSET_LEN);
+    return (pd & reset_mask) | ((ulong)len << DESCRIPTOR_OFFSET_LEN);
 }
 
 static ulong
 msg_set_begin_flag(ulong pd)
 {
-    return pd | ((ulong)DESCRIPTOR_FLAG_BEGIN << DESCRIPTOR_OFFSET_FLAGS);
-}
-
-static ulong
-msg_set_end_flag(ulong pd)
-{
-    return pd | ((ulong)DESCRIPTOR_FLAG_END << DESCRIPTOR_OFFSET_FLAGS);
+    return pd | (1UL << DESCRIPTOR_OFFSET_FLAG_BEGIN);
 }
 
 static ulong
 msg_reset_begin_flag(ulong pd)
 {
-    ulong reset_mask = ~((ulong)DESCRIPTOR_FLAG_BEGIN << DESCRIPTOR_OFFSET_FLAGS);
+    ulong reset_mask = ~(1UL << DESCRIPTOR_OFFSET_FLAG_BEGIN);
     return pd & reset_mask;
 }
 
 static ulong
 msg_get_end_flag(ulong pd)
 {
-    return pd & ((ulong)DESCRIPTOR_FLAG_END << DESCRIPTOR_OFFSET_FLAGS);
+    return pd & (1UL << DESCRIPTOR_OFFSET_FLAG_END);
 }
 
 static ulong
 msg_reset_end_flag(ulong pd)
 {
-    ulong reset_mask = ~((ulong)DESCRIPTOR_FLAG_END << DESCRIPTOR_OFFSET_FLAGS);
+    ulong reset_mask = ~(1UL << DESCRIPTOR_OFFSET_FLAG_END);
     return pd & reset_mask;
 }
 
 static ulong
 msg_set_end_flag(ulong pd)
 {
-    return pd | ((ulong)DESCRIPTOR_FLAG_END << DESCRIPTOR_OFFSET_FLAGS);
+    return pd | (1UL << DESCRIPTOR_OFFSET_FLAG_END);
 }
 
 #define PACK_UINT(xxx, data, len)                       \
@@ -143,7 +136,7 @@ static long2
 begin_string(uint service_id,
              ulong msg_desc, const uchar *data, uint len)
 {
-    msg_desc = msg_set_bytes(msg_desc, len);
+    msg_desc = msg_set_len(msg_desc, len);
     if (len > 52)
         msg_desc = msg_reset_end_flag(msg_desc);
     uint rounded = (len + 3) & ~(uint)3;
@@ -171,7 +164,7 @@ static long2
 continue_string(uint service_id,
               ulong msg_desc, const uchar *data, uint len)
 {
-    msg_desc = msg_set_bytes(msg_desc, len);
+    msg_desc = msg_set_len(msg_desc, len);
 
     PACK_ULONG(arg1, data, len);
     PACK_ULONG(arg2, data, len);
@@ -245,8 +238,8 @@ __ockl_hostcall_message_dwords(uint service_id, ulong msg_desc,
                              uint arg8, uint arg9, uint arg10, uint arg11,
                              uint arg12, uint arg13)
 {
-    uchar num_bytes = num_args * sizeof(uint);
-    msg_desc = msg_set_bytes(msg_desc, num_bytes);
+    uchar len = num_args * sizeof(uint);
+    msg_desc = msg_set_len(msg_desc, len);
 
     long2 result
         = __ockl_hostcall_preview(service_id, msg_desc,

@@ -105,6 +105,14 @@ set_ready_flag(uint control)
                              CONTROL_WIDTH_READY_FLAG, 1);
 }
 
+static uint optimizationBarrierHack(uint in_val)
+{
+    uint out_val;
+    __asm__ volatile ("; ockl readfirstlane hoisting hack %0" :
+                      "=v"(out_val) : "0"(in_val));
+    return out_val;
+}
+
 static ulong
 pop(__global ulong *top, __global buffer_t *buffer)
 {
@@ -131,11 +139,8 @@ pop(__global ulong *top, __global buffer_t *buffer)
  *         broadcast to the whole wave.
  */
 static ulong
-pop_free_stack(__global buffer_t *buffer)
+pop_free_stack(__global buffer_t *buffer, uint me, uint low)
 {
-    uint me = __ockl_lane_u32();
-    uint low = __builtin_amdgcn_readfirstlane(me);
-
     ulong packet_ptr = 0;
     if (me == low) {
         packet_ptr = pop(&buffer->free_stack, buffer);
@@ -169,10 +174,8 @@ push(__global ulong *top, ulong ptr, __global buffer_t *buffer)
  *         packet and signal the host.
  */
 static void
-push_ready_stack(__global buffer_t *buffer, ulong ptr)
+push_ready_stack(__global buffer_t *buffer, ulong ptr, uint me, uint low)
 {
-    uint me = __ockl_lane_u32();
-    uint low = __builtin_amdgcn_readfirstlane(me);
     if (me == low) {
         push(&buffer->ready_stack, ptr, buffer);
         send_signal(buffer->doorbell);
@@ -192,10 +195,8 @@ inc_ptr_tag(ulong ptr, uint index_size)
 /** \brief Return the packet after incrementing the ABA tag
  */
 static void
-return_free_packet(__global buffer_t *buffer, ulong ptr)
+return_free_packet(__global buffer_t *buffer, ulong ptr, uint me, uint low)
 {
-    uint me = __ockl_lane_u32();
-    uint low = __builtin_amdgcn_readfirstlane(me);
     if (me == low) {
         ptr = inc_ptr_tag(ptr, buffer->index_size);
         push(&buffer->free_stack, ptr, buffer);
@@ -205,10 +206,9 @@ return_free_packet(__global buffer_t *buffer, ulong ptr)
 static void
 fill_packet(__global header_t *header, __global payload_t *payload,
             uint service_id, ulong arg0, ulong arg1, ulong arg2, ulong arg3,
-            ulong arg4, ulong arg5, ulong arg6, ulong arg7)
+            ulong arg4, ulong arg5, ulong arg6, ulong arg7,
+            uint me, uint low)
 {
-    uint me = __ockl_lane_u32();
-    uint low = __builtin_amdgcn_readfirstlane(me);
     ulong active = __builtin_amdgcn_read_exec();
     if (me == low) {
         header->service = service_id;
@@ -236,11 +236,9 @@ fill_packet(__global header_t *header, __global payload_t *payload,
  *  two ulong elements in its slot and returns this.
  */
 static long2
-get_return_value(__global header_t *header, __global payload_t *payload)
+get_return_value(__global header_t *header, __global payload_t *payload,
+                 uint me, uint low)
 {
-    uint me = __ockl_lane_u32();
-    uint low = __builtin_amdgcn_readfirstlane(me);
-
     // The while loop needs to be executed by all active
     // lanes. Otherwise, later reads from ptr are performed only by
     // the first thread, while other threads reuse a value cached from
@@ -257,7 +255,7 @@ get_return_value(__global header_t *header, __global payload_t *payload)
     // the ordinary stores in other threads too.
     while (true) {
         uint ready_flag = 1;
-        if (me == low) {
+    if (me == low) {
             uint control =
                 AL((__global const atomic_uint *)&header->control,
                    memory_order_acquire, memory_scope_all_svm_devices);
@@ -300,15 +298,20 @@ __ockl_hostcall_internal(void *_buffer, uint service_id, ulong arg0, ulong arg1,
                          ulong arg2, ulong arg3, ulong arg4, ulong arg5,
                          ulong arg6, ulong arg7)
 {
+    uint me = __ockl_lane_u32();
+    me = optimizationBarrierHack(me);
+    uint low = __builtin_amdgcn_readfirstlane(me);
+
     __global buffer_t *buffer = (__global buffer_t *)_buffer;
-    ulong packet_ptr = pop_free_stack(buffer);
+    ulong packet_ptr = pop_free_stack(buffer, me, low);
     __global header_t *header = get_header(buffer, packet_ptr);
     __global payload_t *payload = get_payload(buffer, packet_ptr);
-    fill_packet(header, payload, service_id, arg0, arg1, arg2, arg3, arg4, arg5,
-                arg6, arg7);
-    push_ready_stack(buffer, packet_ptr);
 
-    long2 retval = get_return_value(header, payload);
-    return_free_packet(buffer, packet_ptr);
+    fill_packet(header, payload, service_id, arg0, arg1, arg2, arg3, arg4, arg5,
+                arg6, arg7, me, low);
+    push_ready_stack(buffer, packet_ptr, me, low);
+
+    long2 retval = get_return_value(header, payload, me, low);
+    return_free_packet(buffer, packet_ptr, me, low);
     return retval;
 }
